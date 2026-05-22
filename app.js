@@ -689,6 +689,7 @@ async function aiOneriAl() {
     aiOneriler = (data.oneriler || []).map(o => o.isim);
     aiOneriData = {};
     (data.oneriler || []).forEach(o => { aiOneriData[o.isim] = o; });
+    tercihleriKaydet();
     renderAiResults(data.oneriler || []);
     listeGuncelle();
     // AI sekmesine geç, mobilse paneli genişlet, sonra sonuçlara kaydır
@@ -876,6 +877,7 @@ async function planAiAl() {
     if (!r.ok) throw new Error(`Sunucu hatası: ${r.status}`);
     const data = await r.json();
     if (data.hata) throw new Error(data.hata);
+    tercihleriKaydet();
     renderPlanResult(data);
   } catch (err) {
     result.innerHTML = `<div class="ai-loading" style="color:#EF4444">Hata: ${escHtml(err.message)}</div>`;
@@ -974,11 +976,44 @@ let kayitliRotalar = [];
 sb.auth.onAuthStateChange((_event, session) => {
   aktifKullanici = session?.user || null;
   accountUIGuncelle();
+  if (aktifKullanici?.user_metadata?.tercihler) tercihleriUygula(aktifKullanici.user_metadata.tercihler);
 });
 sb.auth.getSession().then(({ data }) => {
   aktifKullanici = data.session?.user || null;
   accountUIGuncelle();
+  if (aktifKullanici?.user_metadata?.tercihler) tercihleriUygula(aktifKullanici.user_metadata.tercihler);
 });
+
+// Tercihleri profil verisine kaydet (giriş yapılmışsa)
+async function tercihleriKaydet() {
+  if (!aktifKullanici) return;
+  const prefs = {
+    kim:      getPrefValue('kim'),
+    ilgi:     getPrefValue('ilgi'),
+    butce:    getPrefValue('butce'),
+    planKim:  getPrefValue('plan-kim'),
+    planStil: getPrefValue('plan-stil'),
+    planKon:  getPrefValue('plan-konaklama')
+  };
+  try { await sb.auth.updateUser({ data: { tercihler: prefs } }); } catch (e) { /* sessiz */ }
+}
+
+function prefGrubuAyarla(group, values) {
+  const vals = Array.isArray(values) ? values : [values];
+  document.querySelectorAll(`.pref-chip[data-group="${group}"]`).forEach(b => {
+    b.classList.toggle('active', vals.includes(b.dataset.val));
+  });
+}
+
+function tercihleriUygula(p) {
+  if (!p) return;
+  if (p.kim)                 prefGrubuAyarla('kim', p.kim);
+  if (p.ilgi && p.ilgi.length) prefGrubuAyarla('ilgi', p.ilgi);
+  if (p.butce)               prefGrubuAyarla('butce', p.butce);
+  if (p.planKim)             prefGrubuAyarla('plan-kim', p.planKim);
+  if (p.planStil)            prefGrubuAyarla('plan-stil', p.planStil);
+  if (p.planKon)             prefGrubuAyarla('plan-konaklama', p.planKon);
+}
 
 function accountUIGuncelle() {
   const btn     = document.getElementById('account-btn');
