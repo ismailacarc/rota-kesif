@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rota Keşif — Yol Üzeri Mekan Rehberi</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── HERO ─────────────────────────────────────────── -->
+  <div id="hero" class="hero">
+    <div class="hero-card">
+
+      <div class="hero-logo">
+        <div class="hero-logo-mark"><i data-lucide="map"></i></div>
+        <span>Rota Keşif</span>
+      </div>
+
+      <h1 class="hero-title">Yolculuğundaki en iyi<br>mekanları keşfet</h1>
+      <p class="hero-sub">Rota boyunca tarihi yerler, restoranlar, müzeler, doğal güzellikler ve daha fazlası</p>
+
+      <div class="hero-search-row">
+        <div class="ac-wrap">
+          <i data-lucide="map-pin" class="hs-icon green"></i>
+          <input id="hero-start" type="text" placeholder="Başlangıç şehri" autocomplete="off" />
+          <div id="drop-hs" class="ac-dropdown hidden"></div>
+        </div>
+
+        <div class="hero-sep"><i data-lucide="arrow-right"></i></div>
+
+        <div class="ac-wrap">
+          <i data-lucide="navigation" class="hs-icon red"></i>
+          <input id="hero-end" type="text" placeholder="Hedef şehri" autocomplete="off" />
+          <div id="drop-he" class="ac-dropdown hidden"></div>
+        </div>
+
+        <button class="hero-btn" onclick="heroAra()">
+          <i data-lucide="search"></i>
+          Keşfet
+        </button>
+      </div>
+
+      <div class="hero-chips">
+        <span><i data-lucide="landmark"></i>Tarihi</span>
+        <span><i data-lucide="utensils"></i>Yemek</span>
+        <span><i data-lucide="image"></i>Müze</span>
+        <span><i data-lucide="trees"></i>Doğa</span>
+        <span><i data-lucide="bed"></i>Konaklama</span>
+        <span><i data-lucide="shopping-bag"></i>Alışveriş</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── TOPBAR ─────────────────────────────────────────── -->
+  <header id="topbar" class="topbar hidden">
+    <div class="logo">
+      <div class="logo-mark"><i data-lucide="map" class="logo-icon-svg"></i></div>
+      <div class="logo-text-group">
+        <span class="logo-title">Rota Keşif</span>
+        <span class="logo-sub">Yol üzeri mekan rehberi</span>
+      </div>
+    </div>
+
+    <!-- Mobil rota özeti (sadece telefonda, arama yerine gösteriyor) -->
+    <div id="mobile-route-bar" class="mobile-route-bar hidden" onclick="heroGoster()">
+      <i data-lucide="map-pin"></i>
+      <span id="mobile-route-text">Rota seçilmedi</span>
+      <i data-lucide="chevron-down" class="mobile-route-edit"></i>
+    </div>
+
+    <div class="search-area" id="topbar-search">
+      <div class="ac-wrap compact">
+        <i data-lucide="map-pin" class="input-icon start-icon"></i>
+        <input id="tb-start" type="text" placeholder="Başlangıç" autocomplete="off" />
+        <div id="drop-ts" class="ac-dropdown hidden"></div>
+      </div>
+      <div class="route-arrow"><i data-lucide="arrow-right"></i></div>
+      <div class="ac-wrap compact">
+        <i data-lucide="navigation" class="input-icon end-icon"></i>
+        <input id="tb-end" type="text" placeholder="Hedef" autocomplete="off" />
+        <div id="drop-te" class="ac-dropdown hidden"></div>
+      </div>
+      <button id="btn-search" onclick="topbarAra()">
+        <i data-lucide="search"></i>
+        <span>Bul</span>
+      </button>
+    </div>
+
+    <div id="route-stats" class="route-stats hidden">
+      <div class="stat-item"><i data-lucide="route"></i><span id="stat-distance">—</span></div>
+      <div class="stat-divider"></div>
+      <div class="stat-item"><i data-lucide="map-pin"></i><span id="stat-places">0 mekan</span></div>
+    </div>
+  </header>
+
+  <!-- ── ANA LAYOUT ─────────────────────────────────────── -->
+  <div id="main-layout" class="main-layout">
+
+    <aside id="side-panel" class="side-panel closed">
+      <!-- Mobil handle (sadece telefonda görünür) -->
+      <div class="mobile-handle" onclick="panelToggle()">
+        <div class="handle-bar"></div>
+        <span id="mobile-handle-label">Mekanlar</span>
+        <span id="mobile-handle-count" class="handle-count">0</span>
+      </div>
+
+      <div class="filter-section">
+        <p class="section-label">Filtrele</p>
+        <div class="filter-chips">
+          <button class="chip active" data-kategori="hepsi" onclick="filtreUygula(this)">
+            <i data-lucide="layout-grid"></i>Hepsi
+          </button>
+          <button class="chip" data-kategori="tarihi" onclick="filtreUygula(this)">
+            <i data-lucide="landmark"></i>Tarihi
+          </button>
+          <button class="chip" data-kategori="restoran" onclick="filtreUygula(this)">
+            <i data-lucide="utensils"></i>Yemek
+          </button>
+          <button class="chip" data-kategori="muze" onclick="filtreUygula(this)">
+            <i data-lucide="image"></i>Müze
+          </button>
+          <button class="chip" data-kategori="doga" onclick="filtreUygula(this)">
+            <i data-lucide="trees"></i>Doğa
+          </button>
+          <button class="chip" data-kategori="konaklama" onclick="filtreUygula(this)">
+            <i data-lucide="bed"></i>Konaklama
+          </button>
+          <button class="chip" data-kategori="alisveris" onclick="filtreUygula(this)">
+            <i data-lucide="shopping-bag"></i>Alışveriş
+          </button>
+        </div>
+      </div>
+
+      <div class="list-section">
+        <div class="list-header">
+          <p class="section-label">Mekanlar</p>
+          <span id="mekan-sayisi" class="count-badge">0</span>
+        </div>
+        <div id="place-list"></div>
+      </div>
+    </aside>
+
+    <div class="map-wrapper">
+      <div id="map"></div>
+      <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="loading-card">
+          <div class="spinner"></div>
+          <p class="loading-title">Rota hesaplanıyor</p>
+          <p class="loading-sub">Yol üzeri mekanlar aranıyor...</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── DETAY PANELİ ────────────────────────────────────── -->
+  <div id="detail-panel" class="detail-panel">
+    <div class="dp-topbar">
+      <span class="dp-title">Mekan Detayı</span>
+      <button class="dp-close" onclick="detayKapat()">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div id="dp-content" class="dp-content">
+      <!-- JS tarafından dolduruluyor -->
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+  <script src="app.js"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>
