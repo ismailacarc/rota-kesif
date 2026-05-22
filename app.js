@@ -494,6 +494,7 @@ function panelToggle() {
   const panel = document.getElementById('side-panel');
   panelExpanded = !panelExpanded;
   if (panelExpanded) {
+    panel.classList.remove('open');
     panel.classList.add('expanded');
   } else {
     panel.classList.remove('expanded');
@@ -551,7 +552,13 @@ async function rotayiHesapla(start, end) {
 
     listeGuncelle();
     map.fitBounds(rotaKoord.map(k=>[k.lat,k.lng]), { padding:[40,40] });
-    // sekme zaten hazır, ek işlem gerekmez
+    // Mobilde paneli otomatik genişlet
+    if (isMobile()) {
+      panelExpanded = true;
+      const panel = document.getElementById('side-panel');
+      panel.classList.remove('open');
+      panel.classList.add('expanded');
+    }
 
   } catch(err) {
     console.error(err);
@@ -659,11 +666,21 @@ async function aiOneriAl() {
     aiOneriler = (data.oneriler || []).map(o => o.isim);
     renderAiResults(data.oneriler || []);
     listeGuncelle();
-    // AI sekmesine geç ve sonuçlara kaydır
+    // AI sekmesine geç, mobilse paneli genişlet, sonra sonuçlara kaydır
     switchTab('ai');
+    if (isMobile() && !panelExpanded) {
+      panelExpanded = true;
+      const panel = document.getElementById('side-panel');
+      panel.classList.remove('open');
+      panel.classList.add('expanded');
+    }
     setTimeout(() => {
-      document.getElementById('ai-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
+      const inner = document.querySelector('.ai-inner');
+      const results = document.getElementById('ai-results');
+      if (inner && results) {
+        inner.scrollTo({ top: results.offsetTop - 8, behavior: 'smooth' });
+      }
+    }, 150);
 
   } catch (err) {
     results.innerHTML = `<div class="ai-loading" style="color:#EF4444">Hata: ${escHtml(err.message)}</div>`;
