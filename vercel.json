@@ -8,6 +8,7 @@
   ],
   "routes": [
     { "src": "/api/oner", "dest": "/api/oner.py" },
+    { "src": "/api/plan", "dest": "/api/plan.py" },
     { "src": "/",         "dest": "/index.html" },
     { "src": "/(.*)",     "dest": "/$1" }
   ]

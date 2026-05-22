@@ -27,9 +27,13 @@ let mevcutRota = null;
 let tumMekanlar = [];
 let aktifFiltre = 'hepsi';
 let tumMarkers = [];
-let rotaBas = null;   // [lat, lon]
-let rotaBit = null;   // [lat, lon]
-let rotaSuresi = 0;   // saniye (T1: başlangıç→bitiş)
+let rotaBas = null;       // [lat, lon]
+let rotaBit = null;       // [lat, lon]
+let rotaSuresi = 0;       // saniye
+let rotaKoord = [];       // rota koordinatları (LatLng[])
+let seciliDuraklar = new Set(); // seçili mekan indeksleri
+let aiOneriler = [];      // AI öneri isimleri (highlight için)
+let aiOneriData = {};     // isim → {sebep, aciklama}
 
 // ── KATEGORİ ─────────────────────────────────────────────
 const KAT = {
@@ -150,11 +154,16 @@ async function turkiyeVurgula() {
 
     if (halkalar.length) {
       L.geoJSON({ type:'Feature', geometry:{ type:'Polygon', coordinates:[worldRect, ...halkalar] }}, {
-        style: { fillColor:'#94a3b8', fillOpacity:.16, stroke:false }, interactive:false
+        style: { fillColor:'#94a3b8', fillOpacity:.24, stroke:false }, interactive:false
       }).addTo(map);
     }
+    // Glow katmanı
     L.geoJSON(data, {
-      style: { color:'#60A5FA', weight:1.5, opacity:.65, fillColor:'#EFF6FF', fillOpacity:.4 }, interactive:false
+      style: { color:'#3B82F6', weight:10, opacity:.12, fill:false }, interactive:false
+    }).addTo(map);
+    // Ana sınır + dolgu
+    L.geoJSON(data, {
+      style: { color:'#1D4ED8', weight:2, opacity:.9, fillColor:'#DBEAFE', fillOpacity:.55 }, interactive:false
     }).addTo(map);
   } catch(e) { console.warn('Türkiye sınırı yüklenemedi'); }
 }
@@ -190,6 +199,7 @@ function rotaCiz(bas, bit) {
       clearTimeout(timeout);
       const rota = e.routes[0];
       rotaSuresi = rota.summary.totalTime;
+      rotaKoord = rota.coordinates;
       document.getElementById('stat-distance').textContent = `${(rota.summary.totalDistance/1000).toFixed(0)} km`;
       document.getElementById('route-stats').classList.remove('hidden');
       resolve(rota.coordinates);
@@ -333,6 +343,7 @@ function listeGuncelle() {
   container.innerHTML = filtreli.map(m => {
     const idx      = tumMekanlar.indexOf(m);
     const isAi     = aiOneriler.includes(m.isim);
+    const isSec    = seciliDuraklar.has(idx);
     const aiBadge  = isAi ? `<span class="place-card-ai-badge">✨ AI</span>` : '';
     return `
     <div class="place-card cat-${m.kategori}${isAi ? ' ai-pick' : ''}" onclick="mekanDetay(${idx})">
@@ -345,7 +356,9 @@ function listeGuncelle() {
           ${aiBadge}
         </div>
       </div>
-      <div class="place-card-arrow"><i data-lucide="chevron-right"></i></div>
+      <button class="place-card-add${isSec ? ' added' : ''}" onclick="event.stopPropagation();durakToggle(${idx})" title="${isSec ? 'Plandan çıkar' : 'Plana ekle'}">
+        <i data-lucide="${isSec ? 'check' : 'plus'}"></i>
+      </button>
     </div>`;
   }).join('');
   lucide.createIcons();
@@ -364,6 +377,15 @@ async function mekanDetay(idx) {
   const kat = KAT[mekan.kategori];
   const googleUrl = `https://www.google.com/maps/dir/?api=1&destination=${mekan.lat},${mekan.lon}`;
   const appleUrl  = `https://maps.apple.com/?daddr=${mekan.lat},${mekan.lon}`;
+
+  // AI verisi varsa göster, yoksa kutunu gizle
+  const aiInfo = aiOneriData[mekan.isim];
+  const aiBoxHtml = aiInfo ? `
+    <div class="dp-ai-box">
+      <div class="dp-ai-label"><i data-lucide="sparkles"></i> AI Önerisi</div>
+      <div class="dp-ai-text" style="color:var(--blue);font-style:italic;margin-bottom:6px">${escHtml(aiInfo.sebep)}</div>
+      <div class="dp-ai-text">${escHtml(aiInfo.aciklama)}</div>
+    </div>` : '';
 
   document.getElementById('dp-content').innerHTML = `
     <div class="dp-badge" style="background:${kat.bg};color:${kat.renk}">
@@ -388,10 +410,7 @@ async function mekanDetay(idx) {
       </div>
     </div>
 
-    <div class="dp-ai-box">
-      <div class="dp-ai-label"><i data-lucide="sparkles"></i> AI Açıklaması</div>
-      <div class="dp-ai-text">Yapay zeka destekli mekan açıklaması FAZ C'de eklenecek. Bu alanda mekanın tarihi, ziyaret edilme sebepleri ve kişiselleştirilmiş öneri yer alacak.</div>
-    </div>
+    ${aiBoxHtml}
 
     <div class="dp-divider"></div>
 
@@ -524,9 +543,13 @@ function topbarAra() {
 async function rotayiHesapla(start, end) {
   document.getElementById('loading-overlay').classList.remove('hidden');
   clusterGroup.clearLayers();
-  tumMekanlar = []; tumMarkers = []; aiOneriler = [];
+  tumMekanlar = []; tumMarkers = []; aiOneriler = []; aiOneriData = {};
+  seciliDuraklar = new Set(); rotaKoord = [];
   document.getElementById('route-stats').classList.add('hidden');
   document.getElementById('ai-results').innerHTML = '';
+  document.getElementById('plan-ai-result').innerHTML = '';
+  const planBadge = document.getElementById('plan-badge');
+  if (planBadge) { planBadge.style.display = 'none'; planBadge.textContent = '0'; }
   switchTab('mekanlar');
 
   try {
@@ -593,12 +616,12 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById(`tab-btn-${tab}`).classList.add('active');
   document.getElementById(`tab-${tab}`).classList.add('active');
-  document.getElementById('mobile-handle-label').textContent =
-    tab === 'mekanlar' ? 'Mekanlar' : 'AI Öneri';
+  const labels = { mekanlar: 'Mekanlar', ai: 'AI Öneri', plan: 'Yolculuk Planı' };
+  document.getElementById('mobile-handle-label').textContent = labels[tab] || 'Mekanlar';
+  if (tab === 'plan') planGuncelle();
 }
 
 // ── AI ÖNERİ ─────────────────────────────────────────────
-let aiOneriler = []; // AI'dan gelen öneri isimleri (highlight için)
 
 // Tercih chip seçim mantığı
 document.addEventListener('click', e => {
@@ -664,6 +687,8 @@ async function aiOneriAl() {
     if (data.hata) throw new Error(data.hata);
 
     aiOneriler = (data.oneriler || []).map(o => o.isim);
+    aiOneriData = {};
+    (data.oneriler || []).forEach(o => { aiOneriData[o.isim] = o; });
     renderAiResults(data.oneriler || []);
     listeGuncelle();
     // AI sekmesine geç, mobilse paneli genişlet, sonra sonuçlara kaydır
@@ -709,6 +734,182 @@ function renderAiResults(oneriler) {
       <div class="ai-card-aciklama">${escHtml(o.aciklama)}</div>
     </div>`;
   }).join('');
+}
+
+// ── YOLCULUK PLANI (FAZ D) ───────────────────────────────
+
+function durakToggle(idx) {
+  if (seciliDuraklar.has(idx)) {
+    seciliDuraklar.delete(idx);
+  } else {
+    seciliDuraklar.add(idx);
+  }
+  listeGuncelle();
+  planGuncelle();
+  // Plan badge güncelle
+  const badge = document.getElementById('plan-badge');
+  if (badge) {
+    if (seciliDuraklar.size > 0) {
+      badge.textContent = seciliDuraklar.size;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+}
+
+function rotaFraksiyonu(lat, lon) {
+  if (!rotaKoord.length) return 0;
+  let minDist = Infinity, minIdx = 0;
+  rotaKoord.forEach((k, i) => {
+    const d = haversine(lat, lon, k.lat, k.lng);
+    if (d < minDist) { minDist = d; minIdx = i; }
+  });
+  let cumDist = 0;
+  for (let i = 1; i <= minIdx; i++) {
+    cumDist += haversine(rotaKoord[i-1].lat, rotaKoord[i-1].lng, rotaKoord[i].lat, rotaKoord[i].lng);
+  }
+  let totalDist = 0;
+  for (let i = 1; i < rotaKoord.length; i++) {
+    totalDist += haversine(rotaKoord[i-1].lat, rotaKoord[i-1].lng, rotaKoord[i].lat, rotaKoord[i].lng);
+  }
+  return totalDist > 0 ? cumDist / totalDist : 0;
+}
+
+function dakikaToSaat(min) {
+  const h = Math.floor(min / 60) % 24;
+  const m = Math.floor(min % 60);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+
+function planGuncelle() {
+  const container = document.getElementById('plan-stops');
+  const actions   = document.getElementById('plan-actions');
+  if (!container) return;
+
+  if (!seciliDuraklar.size) {
+    container.innerHTML = `
+      <div class="plan-empty">
+        <div class="plan-empty-icon"><i data-lucide="map-pin-plus"></i></div>
+        <p>Mekanlar sekmesinden <strong>+</strong> butonuna basarak durak ekle</p>
+      </div>`;
+    if (actions) actions.classList.add('hidden');
+    lucide.createIcons(); return;
+  }
+
+  const timeVal = document.getElementById('plan-time')?.value || '08:00';
+  const [hh, mm] = timeVal.split(':').map(Number);
+  const departMin = hh * 60 + mm;
+
+  const duraklar = [...seciliDuraklar]
+    .map(idx => ({ idx, mekan: tumMekanlar[idx], frak: rotaFraksiyonu(tumMekanlar[idx].lat, tumMekanlar[idx].lon) }))
+    .sort((a, b) => a.frak - b.frak);
+
+  container.innerHTML = duraklar.map(({ idx, mekan, frak }, i) => {
+    const arrMin  = departMin + frak * (rotaSuresi / 60);
+    const saat    = dakikaToSaat(arrMin);
+    const kat     = KAT[mekan.kategori];
+    const isLast  = i === duraklar.length - 1;
+    return `
+    <div class="stop-item">
+      <div class="stop-time">${saat}</div>
+      <div class="stop-line">
+        <div class="stop-dot" style="color:${kat.renk}"></div>
+        ${!isLast ? '<div class="stop-connector"></div>' : ''}
+      </div>
+      <div class="stop-body">
+        <div class="stop-info">
+          <div class="stop-name">${escHtml(mekan.isim)}</div>
+          <div class="stop-cat">${kat.label}</div>
+        </div>
+        <button class="stop-remove" onclick="durakToggle(${idx})">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  if (actions) actions.classList.remove('hidden');
+  lucide.createIcons();
+}
+
+async function planAiAl() {
+  if (!seciliDuraklar.size) return;
+  const btn    = document.getElementById('btn-plan-ai');
+  const result = document.getElementById('plan-ai-result');
+  btn.disabled = true;
+  btn.querySelector('span').textContent = 'Düşünüyor...';
+  result.innerHTML = `<div class="ai-loading"><div class="spinner"></div> Plan hazırlanıyor...</div>`;
+
+  const timeVal = document.getElementById('plan-time')?.value || '08:00';
+  const [hh, mm] = timeVal.split(':').map(Number);
+  const departMin = hh * 60 + mm;
+
+  const duraklar = [...seciliDuraklar]
+    .map(idx => ({ mekan: tumMekanlar[idx], frak: rotaFraksiyonu(tumMekanlar[idx].lat, tumMekanlar[idx].lon) }))
+    .sort((a, b) => a.frak - b.frak)
+    .map(({ mekan, frak }) => ({
+      isim:     mekan.isim,
+      kategori: mekan.kategori,
+      saat:     dakikaToSaat(departMin + frak * (rotaSuresi / 60))
+    }));
+
+  const payload = {
+    bas:     document.getElementById('tb-start').value || document.getElementById('hero-start').value,
+    bit:     document.getElementById('tb-end').value   || document.getElementById('hero-end').value,
+    cikis:   timeVal,
+    sure:    Math.round(rotaSuresi / 60),
+    duraklar
+  };
+
+  try {
+    const r = await fetchWithTimeout('/api/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }, 30000);
+    if (!r.ok) throw new Error(`Sunucu hatası: ${r.status}`);
+    const data = await r.json();
+    if (data.hata) throw new Error(data.hata);
+    renderPlanResult(data);
+  } catch (err) {
+    result.innerHTML = `<div class="ai-loading" style="color:#EF4444">Hata: ${escHtml(err.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.querySelector('span').textContent = 'AI Plan Oluştur';
+    lucide.createIcons();
+  }
+}
+
+function renderPlanResult(data) {
+  const result = document.getElementById('plan-ai-result');
+  const items  = data.plan  || [];
+  const ozet   = data.ozet  || '';
+  result.innerHTML = `
+    ${ozet ? `<div class="plan-ozet">${escHtml(ozet)}</div>` : ''}
+    ${items.map(item => `
+      <div class="plan-result-item">
+        <div class="plan-result-time">${escHtml(item.saat || '')}</div>
+        <div>
+          ${item.sure ? `<div class="plan-result-sure">${escHtml(item.sure)}</div>` : ''}
+          <div class="plan-result-name">${escHtml(item.yer || '')}</div>
+          <div class="plan-result-tip">${escHtml(item.mesaj || '')}</div>
+        </div>
+      </div>`).join('')}`;
+  lucide.createIcons();
+}
+
+function planMapsAc() {
+  if (!seciliDuraklar.size || !rotaBas || !rotaBit) return;
+  const duraklar = [...seciliDuraklar]
+    .map(idx => tumMekanlar[idx])
+    .sort((a, b) => rotaFraksiyonu(a.lat, a.lon) - rotaFraksiyonu(b.lat, b.lon));
+  const son  = duraklar[duraklar.length - 1];
+  const orta = duraklar.slice(0, -1);
+  let url = `https://www.google.com/maps/dir/${rotaBas[0]},${rotaBas[1]}/`;
+  orta.forEach(d => { url += `${d.lat},${d.lon}/`; });
+  url += `${son.lat},${son.lon}/${rotaBit[0]},${rotaBit[1]}/`;
+  window.open(url, '_blank');
 }
 
 // ── AUTOCOMPLETE KURULUM ─────────────────────────────────

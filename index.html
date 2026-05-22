@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
 
-  <link rel="stylesheet" href="style.css?v=5" />
+  <link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body>
 
@@ -129,6 +129,11 @@
           <i data-lucide="sparkles"></i>
           <span>AI Öneri</span>
         </button>
+        <button class="tab-btn" id="tab-btn-plan" onclick="switchTab('plan')">
+          <i data-lucide="calendar-check"></i>
+          <span>Plan</span>
+          <span id="plan-badge" class="tab-badge" style="display:none">0</span>
+        </button>
       </div>
 
       <!-- Sekme 1: Mekanlar -->
@@ -157,6 +162,38 @@
           </button>
         </div>
         <div id="place-list" class="place-list-inner"></div>
+      </div>
+
+      <!-- Sekme 3: Yolculuk Planı -->
+      <div id="tab-plan" class="tab-panel">
+        <div class="plan-inner">
+
+          <div class="plan-departure">
+            <div class="plan-dep-label">
+              <i data-lucide="clock"></i>
+              <span>Çıkış saati</span>
+            </div>
+            <input type="time" id="plan-time" class="plan-time-input" value="08:00" oninput="planGuncelle()">
+          </div>
+
+          <div id="plan-stops" class="plan-stops">
+            <!-- JS tarafından doldurulur -->
+          </div>
+
+          <div id="plan-actions" class="plan-actions hidden">
+            <button id="btn-plan-ai" class="btn-plan-ai" onclick="planAiAl()">
+              <i data-lucide="sparkles"></i>
+              <span>AI Plan Oluştur</span>
+            </button>
+            <button class="btn-plan-maps" onclick="planMapsAc()">
+              <i data-lucide="navigation"></i>
+              <span>Google Maps'te Aç</span>
+            </button>
+          </div>
+
+          <div id="plan-ai-result"></div>
+
+        </div>
       </div>
 
       <!-- Sekme 2: AI Öneri -->
@@ -235,7 +272,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
   <script>lucide.createIcons();</script>
 </body>
 </html>
