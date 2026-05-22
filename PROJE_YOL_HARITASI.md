@@ -2,7 +2,7 @@
 
 > **Yaşayan belge.** Her oturumda önce burayı oku — ürünün ne olduğunu, nerede kaldığımızı, sıradaki işi buradan anla.
 > Yaklaşım: **Tam kullanıcı odaklı gerçek ürün** (yayınlanacak, fayda sağlayacak).
-> Son güncelleme: 2026-05-21
+> Son güncelleme: 2026-05-22
 
 ---
 
@@ -85,7 +85,7 @@ Keşfet  →  Kişiselleştir  →  Planla  →  Eyleme geç
 > Her faz **tek başına kullanıcıya somut bir fayda** teslim eder.
 > İşaretler: ✅ Tamam · 🔄 Devam · ⬜ Bekliyor
 
-### FAZ A — Keşif Deneyimini Tamamla (Polish + Mobil) ⬜
+### FAZ A — Keşif Deneyimini Tamamla (Polish + Mobil) ✅
 **Kullanıcı kazanımı:** *"Her cihazda çalışıyor, bir mekana nasıl gideceğimi biliyorum."*
 - ⬜ **Mekan detay paneli** (karta tıkla → yan/alt panelde tüm bilgi)
 - ⬜ **"Yol tarifi al"** butonu → Google Maps / Apple Maps navigasyon linki
@@ -93,14 +93,14 @@ Keşfet  →  Kişiselleştir  →  Planla  →  Eyleme geç
 - ⬜ Boş/hata durumları, "şehir bulunamadı" gibi zarif uyarılar
 - ⬜ Rota üzerindeki ana şehirleri durak olarak işaretleme
 
-### FAZ B — Sapma Analizi (Detour) ⬜  ⭐ Killer #1
+### FAZ B — Sapma Analizi (Detour) ✅  ⭐ Killer #1
 **Kullanıcı kazanımı:** *"Her durak bana kaç dakikaya mal oluyor biliyorum."*
 - ⬜ Rotaya dik mesafe yerine **gerçek "+X dk" hesabı** (OSRM: start→durak→end)
 - ⬜ Kartta ve detayda **sapma süresi rozeti** (ör. "+12 dk")
 - ⬜ Görsel işaret: az sapma yeşil / çok sapma turuncu
 - ⬜ Sadece üst N aday için hesap (API tasarrufu + önbellek)
 
-### FAZ C — AI Akıllı Öneri ⬜  ⭐ Killer #2 (ürünün kalbi)
+### FAZ C — AI Akıllı Öneri ✅  ⭐ Killer #2 (ürünün kalbi)
 **Kullanıcı kazanımı:** *"Bana özel en iyi durakları, nedenleriyle öğreniyorum."*
 - ⬜ **Backend**: Vercel Python serverless fonksiyonları (`/api`) + Claude API
 - ⬜ API anahtarı `.env`'de gizli (asla frontend'e girmez)
@@ -109,20 +109,23 @@ Keşfet  →  Kişiselleştir  →  Planla  →  Eyleme geç
 - ⬜ **AI mekan açıklaması** (OSM'de sadece isim var → "burası ne, neden uğra")
 - ⬜ Prompt caching + sonuç önbellekleme (maliyet kontrolü)
 
-### FAZ D — Yolculuk Planı ⬜  ⭐ Killer #3
+### FAZ D — Yolculuk Planı ✅  ⭐ Killer #3
 **Kullanıcı kazanımı:** *"Çıkış saatime göre yemek/konaklama takvimim hazır."*
 - ⬜ **Çıkış saati** girişi → rota süresiyle konumsal zaman hesabı
 - ⬜ Zaman bazlı öneri: "13:00 Afyon → öğle yemeği", "19:00 Bolu → konaklama"
 - ⬜ **AI itinerary builder**: "2 mola + 1 gece konaklama" gibi serbest istek
 - ⬜ Seçilen durakları rotaya **waypoint** ekleme (rota güncellensin)
 
-### FAZ E — Kaydet & Paylaş (Utility) ⬜
+### FAZ E — Kaydet & Paylaş (Utility) ✅
 **Kullanıcı kazanımı:** *"Planımı saklıyorum, arkadaşımla paylaşıyorum."*
-- ⬜ Trip kaydetme (önce localStorage, ileride hesap)
-- ⬜ **Paylaşılabilir link** (rota + seçili duraklar URL'de kodlu)
-- ⬜ "Tüm planı Google Maps'te aç" (çoklu durak)
+- ✅ Üyelik: Supabase e-posta/şifre giriş & kayıt (bkz. memory project-supabase)
+- ✅ Trip kaydetme (Supabase `trips` tablosu, RLS ile kullanıcıya özel)
+- ✅ "Rotalarım": kayıtlı rotaları listele/yükle/sil
+- ✅ Profil tercih hafızası (AI tercihleri user_metadata'da, otomatik dolar)
+- ✅ **Paylaşılabilir link** (rota + duraklar URL'de base64, giriş gerektirmez)
+- ✅ "Tüm planı Google Maps'te aç" (çoklu durak) — FAZ D'de yapıldı
 
-### FAZ F — Yayınla (Deployment) ⬜
+### FAZ F — Yayınla (Deployment) ✅
 **Kullanıcı kazanımı:** *"Herkes erişebiliyor."*
 - ⬜ Vercel'e deploy (frontend statik + Python `/api` fonksiyonları)
 - ⬜ Özel domain (opsiyonel), basit analytics, geri bildirim butonu
@@ -226,8 +229,10 @@ Haritalar Uygulaması/
 
 ## 13. SIRADAKİ ADIM
 
-**FAZ A** ile başla: önce **mekan detay paneli + "yol tarifi al" linki**, ardından **mobil responsive**.
-Bu, mevcut keşif deneyimini "gerçekten kullanılabilir" seviyeye çıkarır. Sonra FAZ B (sapma) → FAZ C (AI).
+**FAZ A–F tamamlandı** (Keşif, Sapma, AI Öneri, Yolculuk Planı, Kaydet & Paylaş, Yayın). Canlı: rota-kesif.vercel.app · GitHub private.
+
+Geriye **FAZ G — RAG Zenginleştirme** kaldı (turizm bilgi tabanı + vektör DB ile kaynaklı/derin öneriler). Akademik "AI çekirdek" şartı zaten FAZ C ile karşılanıyor; FAZ G derinlik katar.
+Alternatif odak: gerçek test kullanıcılarından (3-4 kişi) geri bildirim toplayıp cilalama.
 
 **Kararlar (sabit):**
 - Tam responsive (mobil + masaüstü)
