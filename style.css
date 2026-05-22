@@ -1013,6 +1013,17 @@ body {
 .btn-plan-save:hover { border-color: var(--gray-900); color: var(--gray-900); }
 .btn-plan-save i { width: 15px; height: 15px; stroke-width: 2.5; }
 
+/* Planı Paylaş butonu */
+.btn-plan-share {
+  width: 100%; padding: 11px; border: 1.5px solid var(--gray-200);
+  background: var(--white); color: var(--gray-700); border-radius: var(--r-md);
+  font-family: inherit; font-size: 14px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: all .15s;
+}
+.btn-plan-share:hover { border-color: #10B981; color: #10B981; }
+.btn-plan-share i { width: 15px; height: 15px; stroke-width: 2.5; }
+
 /* ── HESAP ALANI (Topbar) ──────────────────────────────── */
 .account-area { position: relative; margin-left: 12px; flex-shrink: 0; }
 .account-btn {

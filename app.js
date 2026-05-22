@@ -917,6 +917,51 @@ function planMapsAc() {
   window.open(url, '_blank');
 }
 
+// ── PLANI PAYLAŞ (link ile) ──────────────────────────────
+function planPaylas() {
+  if (!rotaBas || !tumMekanlar.length) { toastGoster('Önce bir rota planla.', 'bilgi'); return; }
+  const bas = document.getElementById('tb-start').value || document.getElementById('hero-start').value;
+  const bit = document.getElementById('tb-end').value   || document.getElementById('hero-end').value;
+  const duraklar = [...seciliDuraklar].map(i => {
+    const m = tumMekanlar[i];
+    return { isim: m.isim, lat: m.lat, lon: m.lon, kategori: m.kategori };
+  });
+  const kod = btoa(unescape(encodeURIComponent(JSON.stringify({ bas, bit, duraklar }))));
+  const url = `${location.origin}/?plan=${kod}`;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(
+      () => toastGoster('Paylaşım linki kopyalandı! ✓', 'basari'),
+      () => prompt('Linki kopyala:', url)
+    );
+  } else {
+    prompt('Linki kopyala:', url);
+  }
+}
+
+async function paylasimLinkiKontrol() {
+  const kod = new URLSearchParams(location.search).get('plan');
+  if (!kod) return;
+  try {
+    const p = JSON.parse(decodeURIComponent(escape(atob(kod))));
+    if (!p.bas || !p.bit) return;
+    document.getElementById('tb-start').value   = p.bas;
+    document.getElementById('tb-end').value     = p.bit;
+    document.getElementById('hero-start').value = p.bas;
+    document.getElementById('hero-end').value   = p.bit;
+    heroGizle(p.bas, p.bit);
+    await rotayiHesapla(p.bas, p.bit);
+    const savedNames = new Set((p.duraklar || []).map(d => d.isim));
+    seciliDuraklar = new Set();
+    tumMekanlar.forEach((m, i) => { if (savedNames.has(m.isim)) seciliDuraklar.add(i); });
+    listeGuncelle(); planGuncelle();
+    const badge = document.getElementById('plan-badge');
+    if (badge && seciliDuraklar.size) { badge.textContent = seciliDuraklar.size; badge.style.display = ''; }
+    toastGoster('Paylaşılan rota yüklendi! 🗺️', 'basari');
+  } catch (e) {
+    console.warn('Paylaşım linki çözülemedi:', e);
+  }
+}
+
 // ── ÜYELİK & KAYDETME (Supabase) ─────────────────────────
 const SUPABASE_URL = 'https://tnbmblkxikorxztctrlh.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_NUayPw1ODqCOOWUA9p3kEw_IpvToJhH';
@@ -1117,3 +1162,6 @@ document.addEventListener('keydown', e => {
   if (document.getElementById('hero').style.display !== 'none') heroAra();
   else topbarAra();
 });
+
+// ── BAŞLANGIÇ: paylaşım linki var mı? ────────────────────
+paylasimLinkiKontrol();
