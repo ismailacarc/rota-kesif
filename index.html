@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
 
-  <link rel="stylesheet" href="style.css?v=6" />
+  <link rel="stylesheet" href="style.css?v=7" />
 </head>
 <body>
 
@@ -180,7 +180,36 @@
             <!-- JS tarafından doldurulur -->
           </div>
 
-          <div id="plan-actions" class="plan-actions hidden">
+          <div class="plan-prefs">
+            <div class="pref-group">
+              <span class="pref-label">Kimlerle?</span>
+              <div class="pref-chips">
+                <button class="pref-chip active" data-group="plan-kim" data-val="aile">Aile</button>
+                <button class="pref-chip" data-group="plan-kim" data-val="cift">Çift</button>
+                <button class="pref-chip" data-group="plan-kim" data-val="yalniz">Yalnız</button>
+                <button class="pref-chip" data-group="plan-kim" data-val="grup">Grup</button>
+              </div>
+            </div>
+
+            <div class="pref-group">
+              <span class="pref-label">Yolculuk Stili?</span>
+              <div class="pref-chips">
+                <button class="pref-chip" data-group="plan-stil" data-val="hizli">Hızlı Geç</button>
+                <button class="pref-chip active" data-group="plan-stil" data-val="normal">Normal</button>
+                <button class="pref-chip" data-group="plan-stil" data-val="kesif">Detaylı Keşif</button>
+              </div>
+            </div>
+
+            <div class="pref-group">
+              <span class="pref-label">Konaklama?</span>
+              <div class="pref-chips">
+                <button class="pref-chip" data-group="plan-konaklama" data-val="evet">Gece Kalıyorum</button>
+                <button class="pref-chip active" data-group="plan-konaklama" data-val="hayir">Günübirlik</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="plan-actions" class="plan-actions" style="display:none">
             <button id="btn-plan-ai" class="btn-plan-ai" onclick="planAiAl()">
               <i data-lucide="sparkles"></i>
               <span>AI Plan Oluştur</span>
@@ -272,7 +301,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=7"></script>
   <script>lucide.createIcons();</script>
 </body>
 </html>

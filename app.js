@@ -793,7 +793,7 @@ function planGuncelle() {
         <div class="plan-empty-icon"><i data-lucide="map-pin-plus"></i></div>
         <p>Mekanlar sekmesinden <strong>+</strong> butonuna basarak durak ekle</p>
       </div>`;
-    if (actions) actions.classList.add('hidden');
+    if (actions) actions.style.display = 'none';
     lucide.createIcons(); return;
   }
 
@@ -829,7 +829,7 @@ function planGuncelle() {
     </div>`;
   }).join('');
 
-  if (actions) actions.classList.remove('hidden');
+  if (actions) actions.style.display = '';
   lucide.createIcons();
 }
 
@@ -859,7 +859,12 @@ async function planAiAl() {
     bit:     document.getElementById('tb-end').value   || document.getElementById('hero-end').value,
     cikis:   timeVal,
     sure:    Math.round(rotaSuresi / 60),
-    duraklar
+    duraklar,
+    tercihler: {
+      kim:       getPrefValue('plan-kim'),
+      stil:      getPrefValue('plan-stil'),
+      konaklama: getPrefValue('plan-konaklama')
+    }
   };
 
   try {

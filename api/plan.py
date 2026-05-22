@@ -11,7 +11,7 @@ def claude(api_key, prompt):
     payload = json.dumps({
         'model': 'claude-haiku-4-5-20251001',
         'max_tokens': 1500,
-        'system': 'Sen Türkiye\'yi çok iyi bilen bir seyahat asistanısın. Sadece JSON formatında yanıt ver.',
+        'system': 'Sen Turkiye\'yi cok iyi bilen bir seyahat asistanisin. Sadece JSON formatinda yanit ver.',
         'messages': [{'role': 'user', 'content': prompt}]
     }).encode('utf-8')
 
@@ -29,34 +29,63 @@ def claude(api_key, prompt):
         return json.loads(resp.read())
 
 
-def build_prompt(bas, bit, cikis, sure_dakika, duraklar):
+def build_prompt(bas, bit, cikis, sure_dakika, duraklar, tercihler=None):
+    kim_map = {
+        'aile':   'aile (cocuklar dahil)',
+        'cift':   'cift',
+        'yalniz': 'yalniz gezgin',
+        'grup':   'arkadas grubu'
+    }
+    stil_map = {
+        'hizli':  'hizli gecis (kisa molalar)',
+        'normal': 'dengeli yolculuk',
+        'kesif':  'detayli kesif (uzun molalar, acele yok)'
+    }
+    kon_map = {
+        'evet':  'gece konaklama var',
+        'hayir': 'gunubirlik, ayni gun donus'
+    }
+
+    t    = tercihler or {}
+    kim  = kim_map.get(t.get('kim', ''), '')
+    stil = stil_map.get(t.get('stil', ''), '')
+    kon  = kon_map.get(t.get('konaklama', ''), '')
+
+    pref_lines = []
+    if kim:  pref_lines.append(f'- Kimlerle: {kim}')
+    if stil: pref_lines.append(f'- Yolculuk stili: {stil}')
+    if kon:  pref_lines.append(f'- Konaklama: {kon}')
+    pref_text = '\n'.join(pref_lines) if pref_lines else '(belirtilmemis)'
+
     durak_lines = '\n'.join(
-        f"• {d['saat']} — {d['isim']} [{d.get('kategori', '')}]"
+        f"- {d['saat']} -- {d['isim']} [{d.get('kategori', '')}]"
         for d in duraklar
     )
 
-    return f"""Yolculuk: {bas} → {bit}
-Çıkış saati: {cikis}
-Toplam süre (duraklar olmadan): {sure_dakika} dakika
+    return f"""Yolculuk: {bas} -> {bit}
+Cikis saati: {cikis}
+Toplam sure (duraklar olmadan): {sure_dakika} dakika
 
-Planlanan duraklar (tahmini varış saatleri):
+Kullanici tercihleri:
+{pref_text}
+
+Planlanan duraklar (tahmini varis saatleri):
 {durak_lines}
 
-Görev: Bu yolculuk için Türkçe, samimi ve pratik bir plan yaz.
-Her durak için ne yapılabileceğini, kaç dakika kalınabileceğini belirt.
-Yemek/mola/konaklama zamanlamasına dikkat et.
+Gorev: Tercihlere gore kisisellestirilmis, Turkce, samimi ve pratik bir yolculuk plani yaz.
+Her durak icin ne yapilabilecegini ve kac dakika kalinabilecegini belirt.
 
-SADECE şu JSON formatında yanıt ver:
+SADECE su JSON formatinda yanit ver:
 {{
   "plan": [
     {{
       "saat": "HH:MM",
-      "yer": "mekanın adı",
+      "yer": "mekanin adi",
       "sure": "30-60 dakika",
-      "mesaj": "bu yer için 1-2 cümle öneri"
+      "mesaj": "bu yer icin 1-2 cumle kisisel oneri"
     }}
   ],
-  "ozet": "yolculuk için 2-3 cümlelik genel değerlendirme ve tavsiye"
+  "ozet": "yolculuk icin 2-3 cumlelik genel degerlendirme ve tavsiye"
 }}"""
 
 
@@ -75,14 +104,15 @@ class handler(BaseHTTPRequestHandler):
 
             api_key = os.environ.get('ANTHROPIC_API_KEY', '').strip()
             if not api_key:
-                return self._json({'hata': 'API anahtarı eksik', 'plan': []}, 500)
+                return self._json({'hata': 'API anahtari eksik', 'plan': []}, 500)
 
             prompt = build_prompt(
                 body.get('bas', ''),
                 body.get('bit', ''),
                 body.get('cikis', '08:00'),
                 body.get('sure', 0),
-                body.get('duraklar', [])
+                body.get('duraklar', []),
+                body.get('tercihler', {})
             )
             raw  = claude(api_key, prompt)
             text = raw['content'][0]['text'].strip()
@@ -94,7 +124,7 @@ class handler(BaseHTTPRequestHandler):
             result = json.loads(text)
 
         except json.JSONDecodeError:
-            result = {'hata': 'AI yanıtı parse edilemedi', 'plan': []}
+            result = {'hata': 'AI yaniti parse edilemedi', 'plan': []}
         except Exception as e:
             result = {'hata': str(e), 'plan': []}
 
