@@ -684,6 +684,12 @@ body {
   .route-stats { display: none !important; }
   .mobile-route-bar:not(.hidden) { display: flex; }
 
+  /* Hesap butonu mobilde ikon-only */
+  .account-area { margin-left: 8px; }
+  .account-btn { padding: 8px; }
+  .account-btn span { display: none; }
+  .account-menu { min-width: 180px; }
+
   /* Hero */
   .hero-card {
     padding: 28px 20px 24px;

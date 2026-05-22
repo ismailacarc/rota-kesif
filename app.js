@@ -967,22 +967,26 @@ async function paylasimLinkiKontrol() {
 // ── ÜYELİK & KAYDETME (Supabase) ─────────────────────────
 const SUPABASE_URL = 'https://tnbmblkxikorxztctrlh.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_NUayPw1ODqCOOWUA9p3kEw_IpvToJhH';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = (window.supabase && window.supabase.createClient)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+  : null;
 
 let authMode = 'giris';
 let aktifKullanici = null;
 let kayitliRotalar = [];
 
-sb.auth.onAuthStateChange((_event, session) => {
-  aktifKullanici = session?.user || null;
-  accountUIGuncelle();
-  if (aktifKullanici?.user_metadata?.tercihler) tercihleriUygula(aktifKullanici.user_metadata.tercihler);
-});
-sb.auth.getSession().then(({ data }) => {
-  aktifKullanici = data.session?.user || null;
-  accountUIGuncelle();
-  if (aktifKullanici?.user_metadata?.tercihler) tercihleriUygula(aktifKullanici.user_metadata.tercihler);
-});
+if (sb) {
+  sb.auth.onAuthStateChange((_event, session) => {
+    aktifKullanici = session?.user || null;
+    accountUIGuncelle();
+    if (aktifKullanici?.user_metadata?.tercihler) tercihleriUygula(aktifKullanici.user_metadata.tercihler);
+  });
+  sb.auth.getSession().then(({ data }) => {
+    aktifKullanici = data.session?.user || null;
+    accountUIGuncelle();
+    if (aktifKullanici?.user_metadata?.tercihler) tercihleriUygula(aktifKullanici.user_metadata.tercihler);
+  });
+}
 
 // Tercihleri profil verisine kaydet (giriş yapılmışsa)
 async function tercihleriKaydet() {
@@ -1081,6 +1085,7 @@ async function authGonder() {
   const pass  = document.getElementById('auth-password').value;
   const msg   = document.getElementById('auth-msg');
   const btn   = document.getElementById('auth-submit');
+  if (!sb) { msg.className = 'auth-msg error'; msg.textContent = 'Giriş sistemi yüklenemedi, sayfayı yenile.'; return; }
   if (!email || !pass) {
     msg.className = 'auth-msg error'; msg.textContent = 'E-posta ve şifre gerekli.';
     return;
