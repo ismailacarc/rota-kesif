@@ -1001,3 +1001,137 @@ body {
   color: var(--gray-400); background: var(--gray-100);
   padding: 1px 7px; border-radius: 8px; margin-bottom: 4px;
 }
+
+/* Rotamı Kaydet butonu */
+.btn-plan-save {
+  width: 100%; padding: 11px; border: 1.5px solid var(--gray-200);
+  background: var(--white); color: var(--gray-700); border-radius: var(--r-md);
+  font-family: inherit; font-size: 14px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: all .15s;
+}
+.btn-plan-save:hover { border-color: var(--gray-900); color: var(--gray-900); }
+.btn-plan-save i { width: 15px; height: 15px; stroke-width: 2.5; }
+
+/* ── HESAP ALANI (Topbar) ──────────────────────────────── */
+.account-area { position: relative; margin-left: 12px; flex-shrink: 0; }
+.account-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border: 1.5px solid var(--gray-200); border-radius: 10px;
+  background: var(--white); color: var(--gray-700);
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; transition: all .15s;
+}
+.account-btn:hover { border-color: var(--blue); color: var(--blue); }
+.account-btn.logged-in { background: var(--blue-light); border-color: var(--blue); color: var(--blue); }
+.account-btn i { width: 15px; height: 15px; stroke-width: 2.5; }
+
+.account-menu {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  background: var(--white); border: 1px solid var(--gray-200);
+  border-radius: var(--r-md); box-shadow: var(--shadow-lg);
+  min-width: 200px; padding: 6px; z-index: 3000;
+}
+.account-menu.hidden { display: none; }
+.account-menu-email {
+  font-size: 12px; color: var(--gray-400); padding: 8px 10px 6px;
+  border-bottom: 1px solid var(--gray-100); margin-bottom: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.account-menu-item {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 9px 10px; border: none; background: none; border-radius: var(--r-sm);
+  font-family: inherit; font-size: 13px; font-weight: 500; color: var(--gray-700);
+  cursor: pointer; transition: background .15s; text-align: left;
+}
+.account-menu-item:hover { background: var(--gray-50); }
+.account-menu-item i { width: 15px; height: 15px; stroke-width: 2; color: var(--gray-500); }
+
+/* ── MODAL (Genel) ─────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 5000;
+  background: rgba(17,24,39,.5); backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.hidden { display: none; }
+.modal-card {
+  background: var(--white); border-radius: var(--r-xl);
+  box-shadow: var(--shadow-xl); width: 100%; max-width: 380px;
+  padding: 28px 24px 24px; position: relative;
+  max-height: 85vh; overflow-y: auto;
+}
+.modal-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 30px; height: 30px; border-radius: 8px; border: none;
+  background: var(--gray-100); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background .15s;
+}
+.modal-close:hover { background: var(--gray-200); }
+.modal-close i { width: 15px; height: 15px; color: var(--gray-500); stroke-width: 2.5; }
+.modal-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 18px; font-weight: 700; color: var(--gray-900);
+}
+.modal-title i { width: 18px; height: 18px; color: var(--blue); stroke-width: 2.5; }
+
+/* Auth modal */
+.auth-head { text-align: center; margin-bottom: 18px; }
+.auth-icon {
+  width: 52px; height: 52px; margin: 0 auto 12px;
+  background: var(--blue-light); border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+.auth-icon i { width: 26px; height: 26px; color: var(--blue); stroke-width: 2; }
+.auth-head .modal-title { justify-content: center; }
+.auth-sub { font-size: 13px; color: var(--gray-500); margin-top: 6px; }
+
+.auth-tabs {
+  display: flex; gap: 4px; background: var(--gray-100);
+  border-radius: var(--r-md); padding: 4px; margin-bottom: 16px;
+}
+.auth-tab {
+  flex: 1; padding: 9px; border: none; background: none; border-radius: var(--r-sm);
+  font-family: inherit; font-size: 13px; font-weight: 600; color: var(--gray-500);
+  cursor: pointer; transition: all .15s;
+}
+.auth-tab.active { background: var(--white); color: var(--gray-900); box-shadow: var(--shadow-sm); }
+
+.auth-form { display: flex; flex-direction: column; gap: 10px; }
+.auth-form input {
+  width: 100%; padding: 12px 14px; border: 1.5px solid var(--gray-200);
+  border-radius: var(--r-md); font-family: inherit; font-size: 14px; color: var(--gray-900);
+  outline: none; transition: border-color .15s, box-shadow .15s;
+}
+.auth-form input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
+.auth-submit {
+  width: 100%; padding: 12px; margin-top: 4px; border: none; border-radius: var(--r-md);
+  background: var(--blue); color: white;
+  font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: background .15s;
+}
+.auth-submit:hover { background: var(--blue-hover); }
+.auth-submit:disabled { opacity: .6; cursor: not-allowed; }
+.auth-msg { font-size: 12.5px; text-align: center; line-height: 1.5; min-height: 16px; }
+.auth-msg.error { color: #EF4444; }
+.auth-msg.success { color: #10B981; }
+
+/* Rotalarım listesi */
+.trips-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.trip-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border: 1px solid var(--gray-200); border-radius: var(--r-md);
+  cursor: pointer; transition: all .15s;
+}
+.trip-card:hover { border-color: var(--blue); background: var(--blue-light); }
+.trip-card-body { flex: 1; min-width: 0; }
+.trip-card-route { font-size: 14px; font-weight: 600; color: var(--gray-900); }
+.trip-card-meta { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
+.trip-card-del {
+  width: 30px; height: 30px; flex-shrink: 0; border: none; background: var(--gray-100);
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background .15s;
+}
+.trip-card-del:hover { background: #FEE2E2; }
+.trip-card-del:hover i { color: #EF4444; }
+.trip-card-del i { width: 14px; height: 14px; color: var(--gray-500); stroke-width: 2; }
+.trips-empty { text-align: center; padding: 30px 20px; font-size: 13px; color: var(--gray-400); }

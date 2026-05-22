@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
 
-  <link rel="stylesheet" href="style.css?v=7" />
+  <link rel="stylesheet" href="style.css?v=8" />
 </head>
 <body>
 
@@ -104,6 +104,18 @@
       <div class="stat-item"><i data-lucide="route"></i><span id="stat-distance">—</span></div>
       <div class="stat-divider"></div>
       <div class="stat-item"><i data-lucide="map-pin"></i><span id="stat-places">0 mekan</span></div>
+    </div>
+
+    <div class="account-area">
+      <button id="account-btn" class="account-btn" onclick="accountBtnClick()">
+        <i data-lucide="user"></i>
+        <span id="account-label">Giriş</span>
+      </button>
+      <div id="account-menu" class="account-menu hidden">
+        <div class="account-menu-email" id="account-menu-email">—</div>
+        <button class="account-menu-item" onclick="rotalarimAc()"><i data-lucide="bookmark"></i> Rotalarım</button>
+        <button class="account-menu-item" onclick="cikisYap()"><i data-lucide="log-out"></i> Çıkış Yap</button>
+      </div>
     </div>
   </header>
 
@@ -218,6 +230,10 @@
               <i data-lucide="navigation"></i>
               <span>Google Maps'te Aç</span>
             </button>
+            <button class="btn-plan-save" onclick="rotaKaydet()">
+              <i data-lucide="bookmark"></i>
+              <span>Rotamı Kaydet</span>
+            </button>
           </div>
 
           <div id="plan-ai-result"></div>
@@ -298,10 +314,42 @@
     </div>
   </div>
 
+  <!-- ── GİRİŞ / KAYIT MODALI ───────────────────────────── -->
+  <div id="auth-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <button class="modal-close" onclick="authModalKapat()"><i data-lucide="x"></i></button>
+      <div class="auth-head">
+        <div class="auth-icon"><i data-lucide="user-round"></i></div>
+        <h3 class="modal-title" id="auth-title">Giriş Yap</h3>
+        <p class="auth-sub" id="auth-sub">Rotalarını kaydet, her cihazdan eriş.</p>
+      </div>
+      <div class="auth-tabs">
+        <button id="auth-tab-giris" class="auth-tab active" onclick="authTabDegis('giris')">Giriş Yap</button>
+        <button id="auth-tab-kayit" class="auth-tab" onclick="authTabDegis('kayit')">Kayıt Ol</button>
+      </div>
+      <div class="auth-form">
+        <input type="email" id="auth-email" placeholder="E-posta adresin" autocomplete="email" />
+        <input type="password" id="auth-password" placeholder="Şifre (en az 6 karakter)" autocomplete="current-password" />
+        <button id="auth-submit" class="auth-submit" onclick="authGonder()">Giriş Yap</button>
+        <div id="auth-msg" class="auth-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ROTALARIM MODALI ───────────────────────────────── -->
+  <div id="trips-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <button class="modal-close" onclick="tripsModalKapat()"><i data-lucide="x"></i></button>
+      <h3 class="modal-title"><i data-lucide="bookmark"></i> Rotalarım</h3>
+      <div id="trips-list" class="trips-list"></div>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-  <script src="app.js?v=7"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=8"></script>
   <script>lucide.createIcons();</script>
 </body>
 </html>

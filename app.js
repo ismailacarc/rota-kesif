@@ -917,6 +917,194 @@ function planMapsAc() {
   window.open(url, '_blank');
 }
 
+// ── ÜYELİK & KAYDETME (Supabase) ─────────────────────────
+const SUPABASE_URL = 'https://tnbmblkxikorxztctrlh.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_NUayPw1ODqCOOWUA9p3kEw_IpvToJhH';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let authMode = 'giris';
+let aktifKullanici = null;
+let kayitliRotalar = [];
+
+sb.auth.onAuthStateChange((_event, session) => {
+  aktifKullanici = session?.user || null;
+  accountUIGuncelle();
+});
+sb.auth.getSession().then(({ data }) => {
+  aktifKullanici = data.session?.user || null;
+  accountUIGuncelle();
+});
+
+function accountUIGuncelle() {
+  const btn     = document.getElementById('account-btn');
+  const label   = document.getElementById('account-label');
+  const menu    = document.getElementById('account-menu');
+  const emailEl = document.getElementById('account-menu-email');
+  if (!btn) return;
+  if (aktifKullanici) {
+    btn.classList.add('logged-in');
+    label.textContent   = aktifKullanici.email.split('@')[0];
+    emailEl.textContent = aktifKullanici.email;
+  } else {
+    btn.classList.remove('logged-in');
+    label.textContent = 'Giriş';
+    menu.classList.add('hidden');
+  }
+}
+
+function accountBtnClick() {
+  if (aktifKullanici) {
+    document.getElementById('account-menu').classList.toggle('hidden');
+  } else {
+    authModalAc();
+  }
+}
+
+// Menü dışına tıklayınca kapat
+document.addEventListener('click', e => {
+  const area = document.querySelector('.account-area');
+  if (area && !area.contains(e.target)) {
+    document.getElementById('account-menu')?.classList.add('hidden');
+  }
+});
+
+function authModalAc() {
+  document.getElementById('auth-modal').classList.remove('hidden');
+  const msg = document.getElementById('auth-msg');
+  msg.textContent = ''; msg.className = 'auth-msg';
+}
+function authModalKapat() {
+  document.getElementById('auth-modal').classList.add('hidden');
+}
+
+function authTabDegis(mode) {
+  authMode = mode;
+  document.getElementById('auth-tab-giris').classList.toggle('active', mode === 'giris');
+  document.getElementById('auth-tab-kayit').classList.toggle('active', mode === 'kayit');
+  document.getElementById('auth-title').textContent  = mode === 'giris' ? 'Giriş Yap' : 'Kayıt Ol';
+  document.getElementById('auth-submit').textContent = mode === 'giris' ? 'Giriş Yap' : 'Kayıt Ol';
+  const msg = document.getElementById('auth-msg');
+  msg.textContent = ''; msg.className = 'auth-msg';
+}
+
+function cevirHata(m) {
+  if (/Invalid login/i.test(m))        return 'E-posta veya şifre hatalı.';
+  if (/already registered/i.test(m))   return 'Bu e-posta zaten kayıtlı. Giriş yapmayı dene.';
+  if (/at least 6/i.test(m))           return 'Şifre en az 6 karakter olmalı.';
+  if (/Email not confirmed/i.test(m))  return 'E-posta onayı gerekli (Supabase ayarlarından kapatabilirsin).';
+  if (/valid email/i.test(m))          return 'Geçerli bir e-posta gir.';
+  return m;
+}
+
+async function authGonder() {
+  const email = document.getElementById('auth-email').value.trim();
+  const pass  = document.getElementById('auth-password').value;
+  const msg   = document.getElementById('auth-msg');
+  const btn   = document.getElementById('auth-submit');
+  if (!email || !pass) {
+    msg.className = 'auth-msg error'; msg.textContent = 'E-posta ve şifre gerekli.';
+    return;
+  }
+  btn.disabled = true;
+  msg.className = 'auth-msg'; msg.textContent = 'Lütfen bekle...';
+  try {
+    if (authMode === 'kayit') {
+      const { error } = await sb.auth.signUp({ email, password: pass });
+      if (error) throw error;
+      msg.className = 'auth-msg success'; msg.textContent = 'Kayıt başarılı! 🎉';
+    } else {
+      const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+      if (error) throw error;
+    }
+    setTimeout(() => { authModalKapat(); toastGoster('Hoş geldin! ✓', 'basari'); }, 500);
+  } catch (err) {
+    msg.className = 'auth-msg error'; msg.textContent = cevirHata(err.message || String(err));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function cikisYap() {
+  await sb.auth.signOut();
+  document.getElementById('account-menu').classList.add('hidden');
+  toastGoster('Çıkış yapıldı.', 'bilgi');
+}
+
+async function rotaKaydet() {
+  if (!aktifKullanici) { authModalAc(); return; }
+  if (!rotaBas || !tumMekanlar.length) { toastGoster('Önce bir rota hesapla.', 'bilgi'); return; }
+  const bas = document.getElementById('tb-start').value || document.getElementById('hero-start').value;
+  const bit = document.getElementById('tb-end').value   || document.getElementById('hero-end').value;
+  const duraklar = [...seciliDuraklar].map(i => {
+    const m = tumMekanlar[i];
+    return { isim: m.isim, lat: m.lat, lon: m.lon, kategori: m.kategori };
+  });
+  const { error } = await sb.from('trips').insert({ user_id: aktifKullanici.id, bas, bit, duraklar });
+  if (error) { toastGoster('Kaydedilemedi: ' + error.message); return; }
+  toastGoster('Rota kaydedildi! ✓', 'basari');
+}
+
+async function rotalarimAc() {
+  document.getElementById('account-menu').classList.add('hidden');
+  if (!aktifKullanici) { authModalAc(); return; }
+  const modal = document.getElementById('trips-modal');
+  const list  = document.getElementById('trips-list');
+  modal.classList.remove('hidden');
+  list.innerHTML = `<div class="trips-empty">Yükleniyor...</div>`;
+  const { data, error } = await sb.from('trips').select('*').order('created_at', { ascending: false });
+  if (error)        { list.innerHTML = `<div class="trips-empty">Hata: ${escHtml(error.message)}</div>`; return; }
+  if (!data.length) { list.innerHTML = `<div class="trips-empty">Henüz kayıtlı rotan yok.<br>Bir rota planla ve "Rotamı Kaydet" de.</div>`; return; }
+  kayitliRotalar = data;
+  list.innerHTML = data.map(t => {
+    const adet  = (t.duraklar || []).length;
+    const tarih = new Date(t.created_at).toLocaleDateString('tr-TR');
+    return `
+    <div class="trip-card" onclick="rotaYukle('${t.id}')">
+      <div class="trip-card-body">
+        <div class="trip-card-route">${escHtml(t.bas)} → ${escHtml(t.bit)}</div>
+        <div class="trip-card-meta">${adet} durak · ${tarih}</div>
+      </div>
+      <button class="trip-card-del" onclick="event.stopPropagation();rotaSil('${t.id}')">
+        <i data-lucide="trash-2"></i>
+      </button>
+    </div>`;
+  }).join('');
+  lucide.createIcons();
+}
+
+function tripsModalKapat() {
+  document.getElementById('trips-modal').classList.add('hidden');
+}
+
+async function rotaYukle(id) {
+  const trip = kayitliRotalar.find(t => String(t.id) === String(id));
+  if (!trip) return;
+  tripsModalKapat();
+  document.getElementById('tb-start').value   = trip.bas;
+  document.getElementById('tb-end').value     = trip.bit;
+  document.getElementById('hero-start').value = trip.bas;
+  document.getElementById('hero-end').value   = trip.bit;
+  if (document.getElementById('hero').style.display !== 'none') heroGizle(trip.bas, trip.bit);
+  await rotayiHesapla(trip.bas, trip.bit);
+  // Kayıtlı durakları isimle eşleştirip yeniden seç
+  const savedNames = new Set((trip.duraklar || []).map(d => d.isim));
+  seciliDuraklar = new Set();
+  tumMekanlar.forEach((m, i) => { if (savedNames.has(m.isim)) seciliDuraklar.add(i); });
+  listeGuncelle(); planGuncelle();
+  const badge = document.getElementById('plan-badge');
+  if (badge) {
+    if (seciliDuraklar.size) { badge.textContent = seciliDuraklar.size; badge.style.display = ''; }
+    else badge.style.display = 'none';
+  }
+}
+
+async function rotaSil(id) {
+  if (!confirm('Bu rotayı silmek istediğine emin misin?')) return;
+  const { error } = await sb.from('trips').delete().eq('id', id);
+  if (error) { toastGoster('Silinemedi: ' + error.message); return; }
+  rotalarimAc();
+}
+
 // ── AUTOCOMPLETE KURULUM ─────────────────────────────────
 setupAutocomplete('hero-start', 'drop-hs');
 setupAutocomplete('hero-end',   'drop-he');
