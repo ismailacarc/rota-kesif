@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
 
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=4" />
 </head>
 <body>
 
@@ -118,9 +118,22 @@
         <span id="mobile-handle-count" class="handle-count">0</span>
       </div>
 
-      <div class="filter-section">
-        <p class="section-label">Filtrele</p>
-        <div class="filter-chips">
+      <!-- Sekme Çubuğu -->
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-btn-mekanlar" onclick="switchTab('mekanlar')">
+          <i data-lucide="map-pin"></i>
+          <span>Mekanlar</span>
+          <span id="tab-badge" class="tab-badge">0</span>
+        </button>
+        <button class="tab-btn" id="tab-btn-ai" onclick="switchTab('ai')">
+          <i data-lucide="sparkles"></i>
+          <span>AI Öneri</span>
+        </button>
+      </div>
+
+      <!-- Sekme 1: Mekanlar -->
+      <div id="tab-mekanlar" class="tab-panel active">
+        <div class="filter-row">
           <button class="chip active" data-kategori="hepsi" onclick="filtreUygula(this)">
             <i data-lucide="layout-grid"></i>Hepsi
           </button>
@@ -143,14 +156,53 @@
             <i data-lucide="shopping-bag"></i>Alışveriş
           </button>
         </div>
+        <div id="place-list" class="place-list-inner"></div>
       </div>
 
-      <div class="list-section">
-        <div class="list-header">
-          <p class="section-label">Mekanlar</p>
-          <span id="mekan-sayisi" class="count-badge">0</span>
+      <!-- Sekme 2: AI Öneri -->
+      <div id="tab-ai" class="tab-panel">
+        <div class="ai-inner">
+          <div class="ai-intro">
+            <i data-lucide="sparkles"></i>
+            <p>Tercihlerine göre rotandaki en iyi 5 durağı seçiyorum.</p>
+          </div>
+
+          <div class="pref-group">
+            <span class="pref-label">Kimlerle?</span>
+            <div class="pref-chips" id="pref-kim">
+              <button class="pref-chip active" data-group="kim" data-val="aile">Aile</button>
+              <button class="pref-chip" data-group="kim" data-val="cift">Çift</button>
+              <button class="pref-chip" data-group="kim" data-val="yalniz">Yalnız</button>
+              <button class="pref-chip" data-group="kim" data-val="grup">Grup</button>
+            </div>
+          </div>
+
+          <div class="pref-group">
+            <span class="pref-label">İlgi? (çoklu)</span>
+            <div class="pref-chips" id="pref-ilgi">
+              <button class="pref-chip multi" data-group="ilgi" data-val="tarih">Tarih</button>
+              <button class="pref-chip multi" data-group="ilgi" data-val="yemek">Yemek</button>
+              <button class="pref-chip multi" data-group="ilgi" data-val="doga">Doğa</button>
+              <button class="pref-chip multi" data-group="ilgi" data-val="muze">Müze</button>
+            </div>
+          </div>
+
+          <div class="pref-group">
+            <span class="pref-label">Bütçe?</span>
+            <div class="pref-chips" id="pref-butce">
+              <button class="pref-chip" data-group="butce" data-val="ekonomik">Ekonomik</button>
+              <button class="pref-chip active" data-group="butce" data-val="orta">Orta</button>
+              <button class="pref-chip" data-group="butce" data-val="premium">Premium</button>
+            </div>
+          </div>
+
+          <button id="btn-ai-oner" class="btn-ai-oner" onclick="aiOneriAl()">
+            <i data-lucide="sparkles"></i>
+            <span>AI Önerisi Al</span>
+          </button>
+
+          <div id="ai-results"></div>
         </div>
-        <div id="place-list"></div>
       </div>
     </aside>
 
@@ -183,7 +235,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=4"></script>
   <script>lucide.createIcons();</script>
 </body>
 </html>

@@ -1,0 +1,2 @@
+# anthropic SDK yerine urllib kullanıyoruz (standart kütüphane)
+# Ekstra paket gerekmez

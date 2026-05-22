@@ -319,29 +319,33 @@ const ICONS = { tarihi:'landmark', restoran:'utensils', muze:'image', doga:'tree
 
 function listeGuncelle() {
   const container = document.getElementById('place-list');
-  const filtreli = aktifFiltre==='hepsi' ? tumMekanlar : tumMekanlar.filter(m=>m.kategori===aktifFiltre);
+  const filtreli  = aktifFiltre === 'hepsi' ? tumMekanlar : tumMekanlar.filter(m => m.kategori === aktifFiltre);
 
-  document.getElementById('mekan-sayisi').textContent = filtreli.length;
-  document.getElementById('stat-places').textContent = `${tumMekanlar.length} mekan`;
+  document.getElementById('tab-badge').textContent       = filtreli.length;
+  document.getElementById('stat-places').textContent     = `${tumMekanlar.length} mekan`;
   document.getElementById('mobile-handle-count').textContent = filtreli.length;
-  document.getElementById('mobile-handle-label').textContent = aktifFiltre === 'hepsi' ? 'Tüm Mekanlar' : KAT[aktifFiltre]?.label || 'Mekanlar';
 
   if (!filtreli.length) {
     container.innerHTML = `<div class="empty-state"><div class="empty-icon"><i data-lucide="search-x"></i></div><p class="empty-title">Mekan bulunamadı</p><p class="empty-desc">Bu kategoride yol üzeri mekan yok.</p></div>`;
     lucide.createIcons(); return;
   }
+
   container.innerHTML = filtreli.map(m => {
-    const idx = tumMekanlar.indexOf(m);
+    const idx      = tumMekanlar.indexOf(m);
+    const isAi     = aiOneriler.includes(m.isim);
+    const aiBadge  = isAi ? `<span class="place-card-ai-badge">✨ AI</span>` : '';
     return `
-    <div class="place-card cat-${m.kategori}" onclick="mekanDetay(${idx})">
-      <div class="place-card-icon"><i data-lucide="${ICONS[m.kategori]||'map-pin'}"></i></div>
+    <div class="place-card cat-${m.kategori}${isAi ? ' ai-pick' : ''}" onclick="mekanDetay(${idx})">
+      <div class="place-card-stripe"></div>
       <div class="place-card-body">
         <div class="place-card-name">${escHtml(m.isim)}</div>
         <div class="place-card-meta">
           <span class="place-card-cat">${KAT[m.kategori].label}</span>
           <span class="place-card-dist"><i data-lucide="move-diagonal"></i>${m.uzaklik.toFixed(1)} km</span>
+          ${aiBadge}
         </div>
       </div>
+      <div class="place-card-arrow"><i data-lucide="chevron-right"></i></div>
     </div>`;
   }).join('');
   lucide.createIcons();
@@ -519,8 +523,10 @@ function topbarAra() {
 async function rotayiHesapla(start, end) {
   document.getElementById('loading-overlay').classList.remove('hidden');
   clusterGroup.clearLayers();
-  tumMekanlar = []; tumMarkers = [];
+  tumMekanlar = []; tumMarkers = []; aiOneriler = [];
   document.getElementById('route-stats').classList.add('hidden');
+  document.getElementById('ai-results').innerHTML = '';
+  switchTab('mekanlar');
 
   try {
     const [bas, bit] = await Promise.all([sehirKoordinat(start), sehirKoordinat(end)]);
@@ -545,6 +551,7 @@ async function rotayiHesapla(start, end) {
 
     listeGuncelle();
     map.fitBounds(rotaKoord.map(k=>[k.lat,k.lng]), { padding:[40,40] });
+    // sekme zaten hazır, ek işlem gerekmez
 
   } catch(err) {
     console.error(err);
@@ -571,6 +578,120 @@ function toastGoster(mesaj, tip = 'hata') {
   t.textContent = mesaj;
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 5000);
+}
+
+// ── SEKME GEÇİŞİ ─────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`tab-btn-${tab}`).classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  document.getElementById('mobile-handle-label').textContent =
+    tab === 'mekanlar' ? 'Mekanlar' : 'AI Öneri';
+}
+
+// ── AI ÖNERİ ─────────────────────────────────────────────
+let aiOneriler = []; // AI'dan gelen öneri isimleri (highlight için)
+
+// Tercih chip seçim mantığı
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.pref-chip');
+  if (!btn) return;
+  const group = btn.dataset.group;
+  const isMulti = btn.classList.contains('multi');
+
+  if (!isMulti) {
+    // Tek seçim: aynı gruptaki diğerlerini kapat
+    document.querySelectorAll(`.pref-chip[data-group="${group}"]`).forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  } else {
+    // Çoklu seçim: toggle
+    btn.classList.toggle('active');
+  }
+});
+
+function getPrefValue(group) {
+  const actives = [...document.querySelectorAll(`.pref-chip.active[data-group="${group}"]`)];
+  const vals = actives.map(b => b.dataset.val);
+  return group === 'ilgi' ? vals : (vals[0] || '');
+}
+
+async function aiOneriAl() {
+  if (!tumMekanlar.length) {
+    toastGoster('Önce bir rota ara, mekanlar yüklensin.', 'bilgi');
+    return;
+  }
+
+  const btn = document.getElementById('btn-ai-oner');
+  const results = document.getElementById('ai-results');
+
+  btn.disabled = true;
+  btn.querySelector('span').textContent = 'Düşünüyor...';
+  results.innerHTML = `<div class="ai-loading"><div class="spinner"></div> AI senin için seçiyor...</div>`;
+
+  const tercihler = {
+    kim:   getPrefValue('kim'),
+    ilgi:  getPrefValue('ilgi'),
+    butce: getPrefValue('butce')
+  };
+
+  const payload = {
+    bas: document.getElementById('tb-start').value || document.getElementById('hero-start').value,
+    bit: document.getElementById('tb-end').value   || document.getElementById('hero-end').value,
+    mekanlar: tumMekanlar.slice(0, 30).map(m => ({
+      isim: m.isim, kategori: m.kategori, uzaklik: m.uzaklik
+    })),
+    tercihler
+  };
+
+  try {
+    const r = await fetchWithTimeout('/api/oner', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }, 25000);
+
+    if (!r.ok) throw new Error(`Sunucu hatası: ${r.status}`);
+    const data = await r.json();
+
+    if (data.hata) throw new Error(data.hata);
+
+    aiOneriler = (data.oneriler || []).map(o => o.isim);
+    renderAiResults(data.oneriler || []);
+    listeGuncelle();
+    // AI sekmesine geç ve sonuçlara kaydır
+    switchTab('ai');
+    setTimeout(() => {
+      document.getElementById('ai-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+
+  } catch (err) {
+    results.innerHTML = `<div class="ai-loading" style="color:#EF4444">Hata: ${escHtml(err.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.querySelector('span').textContent = 'AI Önerisi Al';
+    lucide.createIcons();
+  }
+}
+
+function renderAiResults(oneriler) {
+  const results = document.getElementById('ai-results');
+  if (!oneriler.length) {
+    results.innerHTML = `<div class="ai-loading">Öneri oluşturulamadı.</div>`;
+    return;
+  }
+  results.innerHTML = oneriler.map((o, i) => {
+    const idx = tumMekanlar.findIndex(m => m.isim === o.isim);
+    return `
+    <div class="ai-card" onclick="${idx >= 0 ? `mekanDetay(${idx})` : ''}">
+      <div class="ai-card-header">
+        <div class="ai-card-num">${i + 1}</div>
+        <div class="ai-card-name">${escHtml(o.isim)}</div>
+      </div>
+      <div class="ai-card-sebep">${escHtml(o.sebep)}</div>
+      <div class="ai-card-aciklama">${escHtml(o.aciklama)}</div>
+    </div>`;
+  }).join('');
 }
 
 // ── AUTOCOMPLETE KURULUM ─────────────────────────────────
