@@ -907,16 +907,20 @@ function renderPlanResult(data) {
 }
 
 function planMapsAc() {
-  if (!seciliDuraklar.size || !rotaBas || !rotaBit) return;
+  if (!rotaBas || !rotaBit) { toastGoster('Önce bir rota planla.', 'bilgi'); return; }
   const duraklar = [...seciliDuraklar]
     .map(idx => tumMekanlar[idx])
     .sort((a, b) => rotaFraksiyonu(a.lat, a.lon) - rotaFraksiyonu(b.lat, b.lon));
-  const son  = duraklar[duraklar.length - 1];
-  const orta = duraklar.slice(0, -1);
+  // Başlangıç → sıralı duraklar → hedef
   let url = `https://www.google.com/maps/dir/${rotaBas[0]},${rotaBas[1]}/`;
-  orta.forEach(d => { url += `${d.lat},${d.lon}/`; });
-  url += `${son.lat},${son.lon}/${rotaBit[0]},${rotaBit[1]}/`;
-  window.open(url, '_blank');
+  duraklar.forEach(d => { url += `${d.lat},${d.lon}/`; });
+  url += `${rotaBit[0]},${rotaBit[1]}`;
+  // Mobil uyumlu açma: window.open popup engeline takılıyor, gerçek link tıklat
+  const a = document.createElement('a');
+  a.href = url; a.target = '_blank'; a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 // ── PLANI PAYLAŞ (link ile) ──────────────────────────────
